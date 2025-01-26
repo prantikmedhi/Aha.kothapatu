@@ -93,7 +93,7 @@
       CometChat.login(UID, AUTH_KEY)
         .then(user => {
           console.log("Login Successful", user);
-          document.getElementById("chat-area").style.display = "block";
+          document.getElementById("chat-area").style.display = "block"; // Show chat area
           listenForMessages();
         })
         .catch(error => console.error("Login Failed", error));
@@ -163,4 +163,4 @@
     initCometChat();
   </script>
 </body>
-</html> 
+</html>
