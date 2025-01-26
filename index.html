@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Real-Time Chat App</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; padding: 0; }
+    .container { max-width: 600px; margin: auto; padding: 20px; }
+    .chat-box { border: 1px solid #ddd; padding: 10px; height: 400px; overflow-y: scroll; }
+    .input-area { display: flex; margin-top: 10px; }
+    input[type="text"] { flex: 1; padding: 10px; border: 1px solid #ddd; }
+    button { padding: 10px; background-color: #007bff; color: white; border: none; cursor: pointer; }
+    button:hover { background-color: #0056b3; }
+  </style>
+  <script src="https://unpkg.com/@cometchat-pro/chat@3.0.0/CometChat.js"></script>
+</head>
+<body>
+  <div class="container">
+    <h2>Real-Time Chat</h2>
+    <p id="user-id-display">Please enter your User ID to start chatting.</p>
+    
+    <!-- Input fields for User ID and Receiver User ID -->
+    <div>
+      <label for="user-id">Enter Your User ID:</label>
+      <input type="text" id="user-id" placeholder="Your User ID">
+      <button onclick="setUserID()">Set Your ID</button>
+    </div>
+
+    <div>
+      <label for="receiver-id">Enter Receiver's User ID:</label>
+      <input type="text" id="receiver-id" placeholder="Receiver's User ID">
+      <button onclick="setReceiver()">Connect</button>
+    </div>
+
+    <div id="chat-area" style="display: none;">
+      <div class="chat-box" id="messages"></div>
+      <div class="input-area">
+        <input type="text" id="message-input" placeholder="Type a message">
+        <button onclick="sendMessage()">Send</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const APP_ID = "2699769f0bd53453";
+    const REGION = "IN";
+    const AUTH_KEY = "f713de4eb9c7812d3d3d26a4db927441f9351399";
+
+    let UID = "";  // User ID will be set manually
+    let receiverID = "";  // Receiver's User ID will be set manually
+
+    // Initialize CometChat
+    function initCometChat() {
+      CometChat.init(APP_ID, new CometChat.AppSettingsBuilder().setRegion(REGION).build())
+        .then(() => {
+          console.log("CometChat Initialized");
+        })
+        .catch(error => console.error("CometChat Initialization Failed", error));
+    }
+
+    // Set User ID when the user inputs their ID
+    function setUserID() {
+      UID = document.getElementById("user-id").value;
+      if (UID) {
+        document.getElementById("user-id-display").textContent = `Your User ID: ${UID}`;
+        loginUser();
+      } else {
+        alert("Please enter a valid User ID.");
+      }
+    }
+
+    // Login the user
+    function loginUser() {
+      const user = new CometChat.User(UID);
+      user.setName(UID);
+
+      CometChat.createUser(user, AUTH_KEY)
+        .then(() => {
+          loginUserToCometChat();
+        })
+        .catch(error => {
+          if (error.code === "ERR_ALREADY_EXISTS") {
+            loginUserToCometChat();
+          } else {
+            console.error("User Creation Failed:", error);
+          }
+        });
+    }
+
+    // Login user to CometChat
+    function loginUserToCometChat() {
+      CometChat.login(UID, AUTH_KEY)
+        .then(user => {
+          console.log("Login Successful", user);
+          document.getElementById("chat-area").style.display = "block";
+          listenForMessages();
+        })
+        .catch(error => console.error("Login Failed", error));
+    }
+
+    // Set Receiver ID when the user enters it
+    function setReceiver() {
+      receiverID = document.getElementById("receiver-id").value;
+      if (receiverID) {
+        alert(`You are now connected with ${receiverID}`);
+      } else {
+        alert("Please enter a valid Receiver's User ID.");
+      }
+    }
+
+    // Send message to the receiver
+    function sendMessage() {
+      const messageText = document.getElementById("message-input").value;
+
+      if (messageText && receiverID) {
+        const textMessage = new CometChat.TextMessage(
+          receiverID,
+          messageText,
+          CometChat.RECEIVER_TYPE.USER
+        );
+
+        CometChat.sendMessage(textMessage)
+          .then(message => {
+            console.log("Message Sent Successfully:", message);
+            displayMessage(message, "outgoing");
+            document.getElementById("message-input").value = "";
+          })
+          .catch(error => {
+            console.error("Error Sending Message:", error);
+            alert("Error sending message: " + error.message);
+          });
+      } else {
+        alert("Message text or receiverID is missing.");
+      }
+    }
+
+    // Display the message in the chat box
+    function displayMessage(message, type) {
+      const chatBox = document.getElementById("messages");
+      const messageElement = document.createElement("div");
+      messageElement.textContent = `${type === "incoming" ? "Friend" : "You"}: ${message.text}`;
+      chatBox.appendChild(messageElement);
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    // Listen for incoming messages
+    function listenForMessages() {
+      const listenerID = "MESSAGE_LISTENER";
+
+      CometChat.addMessageListener(
+        listenerID,
+        new CometChat.MessageListener({
+          onTextMessageReceived: message => {
+            console.log("Incoming Message:", message);
+            displayMessage(message, "incoming");
+          },
+        })
+      );
+    }
+
+    // Initialize CometChat
+    initCometChat();
+  </script>
+</body>
+</html> 
